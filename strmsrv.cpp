@@ -122,9 +122,68 @@ void StreamService::reviewShow(CID_T contentID, int numStars)
 // To do - Complete this function
 CID_T StreamService::suggestBestSimilarContent(CID_T contentID) const
 {
-    // Change this when you are ready, but for now it is a 
-    // dummy implementation
+  throwIfNoCurrentUser();
+  if(!isValidContentID(contentID)){
+    throw std::invalid_argument("Watch: invalid contentID");
+  }
+  //vector of users who have watched the selected title
+  vector<string> alsoViewers(content_[contentID]->getViewers());
+  //remove current user
+
+  vector<string> temp;
+  for (size_t i = 0;i<alsoViewers.size();i++){
+    if (alsoViewers[i]!=cUser_->uname){
+      temp.push_back(alsoViewers[i]);
+    }
+  }
+  alsoViewers = temp;
+
+  //if no other viewers other than current user
+  if (alsoViewers.size()==0){
     return -1;
+  }
+  //vector of movies that each of the other viewers have watched
+  vector<CID_T> movieswatched;
+  for (size_t i = 0; i<alsoViewers.size();i++){
+    User* viewer;
+    for (size_t j= 0; j<users_.size();j++){
+      if(users_[j]->uname==alsoViewers[i]){
+        viewer=users_[j];
+      }
+    }
+    vector<CID_T> views = viewer->history;
+    movieswatched.insert(movieswatched.end(),views.begin(), views.end());
+  }
+
+  
+  while(movieswatched.size()!=0){
+    int maxcount=0;
+    CID_T bestsuggest;
+    for (size_t i = 0; i<movieswatched.size();i++){
+      int count = 0;
+      for (size_t j= 0; j<movieswatched.size();j++){
+        if (movieswatched[i]==movieswatched[j]){
+          count++;
+        }
+      }
+      if (count>maxcount){
+        bestsuggest=movieswatched[i];
+        maxcount=count;
+      }
+    }
+    if (!content_[bestsuggest]->hasViewed(cUser_->uname)&&bestsuggest!=contentID){
+      return bestsuggest;
+    }
+
+    vector<CID_T> temp1;
+    for (size_t i = 0;i<movieswatched.size();i++){
+      if (movieswatched[i]!=bestsuggest){
+        temp1.push_back(movieswatched[i]);
+      }
+    }
+    movieswatched = temp1;
+  }
+  return -1;
 
 }
 
